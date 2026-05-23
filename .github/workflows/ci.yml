@@ -54,3 +54,20 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/hello-cicd:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/hello-cicd:${{ github.sha }}
+
+      - name: Deploy to EC2
+        if: github.ref == 'refs/heads/main'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/hello-cicd:latest
+            docker stop hello-cicd || true
+            docker rm hello-cicd || true
+            docker run -d \
+              --name hello-cicd \
+              --restart unless-stopped \
+              -p 8080:8080 \
+              ${{ secrets.DOCKERHUB_USERNAME }}/hello-cicd:latest
